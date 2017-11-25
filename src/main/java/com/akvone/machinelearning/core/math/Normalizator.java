@@ -1,18 +1,20 @@
-package com.akvone.machinelearning.core;
+package com.akvone.machinelearning.core.math;
 
+import com.akvone.machinelearning.core.TrainingObject;
+import com.akvone.machinelearning.core.parameters.HyperParams;
 import lombok.AllArgsConstructor;
 import org.ejml.simple.SimpleMatrix;
 
 import java.util.ArrayList;
 
-import static com.akvone.machinelearning.core.General.sum;
+import static com.akvone.machinelearning.core.math.CoreFunctions.sum;
 import static com.akvone.machinelearning.core.TrainingObject.averageOfValues;
 import static com.akvone.machinelearning.core.TrainingObject.rangeOfValues;
 
 @AllArgsConstructor
 public class Normalizator {
 
-    HyperParams H;
+    private HyperParams H;
 
     public ArrayList<TrainingObject> normalize(ArrayList<TrainingObject> T) {
         ArrayList<TrainingObject> TN = new ArrayList<>();

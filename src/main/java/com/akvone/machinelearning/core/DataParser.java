@@ -21,7 +21,7 @@ public class DataParser {
                 .skip(1)
                 .forEach(s -> {
                     String[] values = s.split(",");
-                    dataList.add(TrainingObject.getInitializedWithDefaults(parseDouble(values[2]), valueOf(values[0]), valueOf(values[1])));
+                    dataList.add(TrainingObject.initializeWithDefaults(parseDouble(values[2]), valueOf(values[0]), valueOf(values[1])));
                 });
 
         return dataList;

@@ -19,7 +19,7 @@ public class TrainingObject {
         this.y = y;
     }
 
-    public static TrainingObject getInitializedWithDefaults(double y, Double... X) {
+    public static TrainingObject initializeWithDefaults(double y, Double... X) {
         Double[] features = new Double[X.length + 1];
         features[0] = x0value;
         for (int i = 1; i <= X.length; i++) {

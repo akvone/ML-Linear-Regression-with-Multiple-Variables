@@ -1,6 +1,6 @@
 package com.akvone.machinelearning.ui;
 
-import com.akvone.machinelearning.core.Core;
+import com.akvone.machinelearning.core.math.CoreFunctions;
 import com.akvone.machinelearning.core.TrainingObject;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -57,7 +57,7 @@ public class PlotDrawer extends Application {
 //        lineStrip.setWireframeColor(Color.RED);
     }
 
-    public static void addNewHypothesis(Core core, SimpleMatrix w, Color color) {
+    public static void addNewHypothesis(CoreFunctions core, SimpleMatrix w, Color color) {
         LineStrip lineStrip = new LineStrip();
 
         lineStrip.addAll(getPointsForHypothesis(core, w));
@@ -67,7 +67,7 @@ public class PlotDrawer extends Application {
         chart.getScene().getGraph().add(lineStrip);
     }
 
-    public static void updateHypothesis(Core core, SimpleMatrix w) {
+    public static void updateHypothesis(CoreFunctions core, SimpleMatrix w) {
         lineStrip.clear();
 
         lineStrip.addAll(getPointsForHypothesis(core, w));
@@ -75,7 +75,7 @@ public class PlotDrawer extends Application {
         lineStrip.updateBounds();
     }
 
-    private static List<Point> getPointsForHypothesis(Core core, SimpleMatrix w) {
+    private static List<Point> getPointsForHypothesis(CoreFunctions core, SimpleMatrix w) {
         return Arrays.asList(
                 newPoint(core, w, -10, -10),
                 newPoint(core, w, 0, 0),
@@ -83,8 +83,8 @@ public class PlotDrawer extends Application {
         );
     }
 
-    private static Point newPoint(Core core, SimpleMatrix w, double x, double y) {
-        TrainingObject buildPointObject = TrainingObject.getInitializedWithDefaults(0, x, y);
+    private static Point newPoint(CoreFunctions core, SimpleMatrix w, double x, double y) {
+        TrainingObject buildPointObject = TrainingObject.initializeWithDefaults(0, x, y);
 
         return new Point(new Coord3d(x, y, core.f_hypothesis(w, buildPointObject)));
     }

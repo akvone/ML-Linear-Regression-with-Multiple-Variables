@@ -1,7 +1,8 @@
-package com.akvone.machinelearning.core.searchbestalgorithms;
+package com.akvone.machinelearning.core.algorithms;
 
-import com.akvone.machinelearning.core.Core;
-import com.akvone.machinelearning.core.HyperParams;
+import com.akvone.machinelearning.core.math.CoreFunctions;
+import com.akvone.machinelearning.core.parameters.GeneticParams;
+import com.akvone.machinelearning.core.parameters.HyperParams;
 import com.akvone.machinelearning.core.TrainingObject;
 import org.ejml.simple.SimpleMatrix;
 
@@ -10,28 +11,28 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-public class Genetic extends SearchBestAlgorithm {
+public class Genetic implements SearchBestAlgorithm {
 
-    private HyperParams H;
+    private HyperParams HP;
+    private GeneticParams GP;
     private ArrayList<TrainingObject> T;
-    private List<SimpleMatrix> currentPopulation;
-    private int survivorNumber;
+    private List<SimpleMatrix> currentPopulation = new ArrayList<>();
 
-    private Core core;
+    private CoreFunctions core;
 
 
-    public Genetic(HyperParams H, ArrayList<TrainingObject> T, List<SimpleMatrix> currentPopulation, int survivorNumber) {
-        this.H = H;
+    public Genetic(HyperParams HP, GeneticParams GP, ArrayList<TrainingObject> T) {
+        this.HP = HP;
+        this.GP = GP;
         this.T = T;
-        this.currentPopulation = currentPopulation;
-        this.survivorNumber = survivorNumber;
 
-        core = new Core(H);
+        currentPopulation = new ArrayList<>(GP.initialPopulation);
+        core = new CoreFunctions(HP);
     }
 
     @Override
     public void makeIteration() {
-        currentPopulation = makeGeneticsIteration(currentPopulation, survivorNumber);
+        currentPopulation = makeGeneticsIteration(currentPopulation, GP.survivorNumber);
     }
 
     @Override
@@ -46,7 +47,7 @@ public class Genetic extends SearchBestAlgorithm {
         return core.f_J(getBestWeight(), T);
     }
 
-    private double calculateError(SimpleMatrix w){
+    private double calculateError(SimpleMatrix w) {
         return core.f_J(w, T);
     }
 
@@ -80,7 +81,7 @@ public class Genetic extends SearchBestAlgorithm {
     private SimpleMatrix crossover(SimpleMatrix parent1, SimpleMatrix parent2) {
         SimpleMatrix child = new SimpleMatrix(parent1); // Все коеф. от 1 родителя
 
-        for (int i = 0; i < H.featureNumber; i++) {
+        for (int i = 0; i < HP.featureNumber; i++) {
             double newValue;
 
             if (Math.random() > 0.5) {
@@ -98,7 +99,7 @@ public class Genetic extends SearchBestAlgorithm {
     }
 
     private double generateMutationCoefficient() {
-        if (Math.random() < H.mutationProbability) {
+        if (Math.random() < GP.mutationProbability) {
             return 2 * Math.random();
         } else {
             return 1;

@@ -1,17 +1,20 @@
 package com.akvone.machinelearning.core;
 
-import com.akvone.machinelearning.core.searchbestalgorithms.Genetic;
-import com.akvone.machinelearning.core.searchbestalgorithms.GradientDescent;
-import com.akvone.machinelearning.core.searchbestalgorithms.SearchBestAlgorithm;
+import com.akvone.machinelearning.core.algorithms.Genetic;
+import com.akvone.machinelearning.core.algorithms.GradientDescent;
+import com.akvone.machinelearning.core.algorithms.SearchBestAlgorithm;
+import com.akvone.machinelearning.core.math.CoreFunctions;
+import com.akvone.machinelearning.core.math.Normalizator;
+import com.akvone.machinelearning.core.parameters.GeneticParams;
+import com.akvone.machinelearning.core.parameters.GradientDescentParams;
+import com.akvone.machinelearning.core.parameters.HyperParams;
 import com.akvone.machinelearning.ui.PlotDrawer;
-import org.ejml.simple.SimpleMatrix;
 import org.jzy3d.colors.Color;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.function.Function;
 
 import static com.akvone.machinelearning.core.TrainingObject.averageOfValues;
 import static com.akvone.machinelearning.core.TrainingObject.rangeOfValues;
@@ -22,13 +25,17 @@ public class General {
     private static Logger LOG = LoggerFactory.getLogger(General.class);
 
     private HyperParams H;
+    private final GradientDescentParams GDP;
+    private final GeneticParams GP;
 
-    ArrayList<TrainingObject> T;
-    ArrayList<TrainingObject> TN;
-    Normalizator normalizator;
+    private ArrayList<TrainingObject> T;
+    private ArrayList<TrainingObject> TN;
+    private Normalizator normalizator;
 
-    public General(HyperParams hyperParams) {
-        this.H = hyperParams;
+    public General(HyperParams HP, GradientDescentParams GDP, GeneticParams GP) {
+        this.H = HP;
+        this.GDP = GDP;
+        this.GP = GP;
     }
 
     private void initialize() throws Exception {
@@ -46,6 +53,9 @@ public class General {
             );
             averageOfValues.add(T.stream().mapToDouble(value -> value.X.get(finalI)).average().getAsDouble());
         }
+
+        LOG.info("Average of values: {}", TrainingObject.averageOfValues);
+        LOG.info("Range of values is: {}", TrainingObject.rangeOfValues);
     }
 
     public void run() throws Exception {
@@ -59,70 +69,60 @@ public class General {
         Thread.sleep(3000);
 
         LOG.info("Run GradientDescent Algorithm");
-        runGradientDescent(TN);
+        GradientDescent gradientDescent = runGradientDescent(TN);
+
 
         LOG.info("Run Genetic Algorithm");
-        runGenetic(TN);
+        Genetic genetic = runGenetic(TN);
+
+        logResults(gradientDescent);
+        logResults(genetic);
     }
 
-    private void runGradientDescent(ArrayList<TrainingObject> T) throws InterruptedException {
-        GradientDescent gradientDescent = new GradientDescent(H, T);
+    private GradientDescent runGradientDescent(ArrayList<TrainingObject> T) throws InterruptedException {
+        GradientDescent gradientDescent = new GradientDescent(H, GDP, T);
         runAlgorithm(gradientDescent);
 
-//        PlotDrawer.updateHypothesis(new Core(H), gradientDescent.getBestWeight());
-        PlotDrawer.addNewHypothesis(new Core(H), gradientDescent.getBestWeight(), Color.RED);
+        PlotDrawer.addNewHypothesis(new CoreFunctions(H), gradientDescent.getBestWeight(), Color.RED);
+
+        return gradientDescent;
     }
 
-    private void runGenetic(ArrayList<TrainingObject> T) throws InterruptedException {
-        ArrayList<SimpleMatrix> initialPopulation = new ArrayList<>();
-        initialPopulation.add(new SimpleMatrix(new double[][]{{1, 2, 3}}));
-        initialPopulation.add(new SimpleMatrix(new double[][]{{4, 5, 6}}));
-        initialPopulation.add(new SimpleMatrix(new double[][]{{7, 8, 9}}));
-        initialPopulation.add(new SimpleMatrix(new double[][]{{10, 11, 12}}));
-        initialPopulation.add(new SimpleMatrix(new double[][]{{13, 14, 15}}));
-
-        Genetic genetic = new Genetic(H, T, initialPopulation, 5);
+    private Genetic runGenetic(ArrayList<TrainingObject> T) throws InterruptedException {
+        Genetic genetic = new Genetic(H, GP, T);
         runAlgorithm(genetic);
 
-        PlotDrawer.addNewHypothesis(new Core(H), genetic.getBestWeight(), Color.GREEN);
+        PlotDrawer.addNewHypothesis(new CoreFunctions(H), genetic.getBestWeight(), Color.GREEN);
+
+        return genetic;
     }
 
     private void runAlgorithm(SearchBestAlgorithm searchBestAlgorithm) throws InterruptedException {
         int localMinimumCounter = 0;
         double previousError = Double.MAX_VALUE;
 
-        SimpleMatrix w_current = H.startWeightVector;
         for (int i = 1; i <= H.globalIterationNumber && localMinimumCounter <= H.localMinimumIterationNumber; i++) {
             searchBestAlgorithm.makeIteration();
             double currentError = searchBestAlgorithm.getErrorFromBest();
 
-            if (currentError > previousError && Math.abs(previousError - currentError) < H.localMinimumThreshold) {
-                localMinimumCounter++;
-
-            } else {
+            if (currentError < previousError - H.localMinimumThreshold) {
                 localMinimumCounter = 0;
-
+            } else {
+                localMinimumCounter++;
             }
             previousError = currentError;
 
             LOG.trace("{}. Iteration number = {}. J = {}", searchBestAlgorithm.getClass().getSimpleName(), i, currentError);
         }
 
-        LOG.trace("J = {}", searchBestAlgorithm.getClass().getSimpleName(), searchBestAlgorithm.getErrorFromBest());
-        LOG.info("Average {}", averageOfValues);
-        LOG.info("Range {}", rangeOfValues);
-        LOG.info("Output weight vector {}", normalizator.denormalizeWeightVector(searchBestAlgorithm.getBestWeight()));
+        LOG.info("Algorithm {} has been done", searchBestAlgorithm.getClass().getSimpleName(), searchBestAlgorithm.getErrorFromBest());
     }
 
-
-    public static <T> double sum(int firstIndex, int lastIndex, Function<T, Double> function, Function<Integer, T> supplier) {
-        double sum = 0;
-
-        for (int i = firstIndex; i < lastIndex; i++) {
-            T arg = supplier.apply(i);
-            sum += function.apply(arg);
-        }
-
-        return sum;
+    private void logResults(SearchBestAlgorithm searchBestAlgorithm) {
+        LOG.info("***");
+        LOG.info("Algorithm: {}", searchBestAlgorithm.getClass().getSimpleName());
+        LOG.info("Output weight vector {}", normalizator.denormalizeWeightVector(searchBestAlgorithm.getBestWeight()));
+        LOG.info("Best error {}", searchBestAlgorithm.getErrorFromBest());
+        LOG.info("***");
     }
 }
