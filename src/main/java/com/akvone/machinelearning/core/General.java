@@ -3,7 +3,9 @@ package com.akvone.machinelearning.core;
 import com.akvone.machinelearning.core.searchbestalgorithms.Genetic;
 import com.akvone.machinelearning.core.searchbestalgorithms.GradientDescent;
 import com.akvone.machinelearning.core.searchbestalgorithms.SearchBestAlgorithm;
+import com.akvone.machinelearning.ui.PlotDrawer;
 import org.ejml.simple.SimpleMatrix;
+import org.jzy3d.colors.Color;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +22,6 @@ public class General {
     private static Logger LOG = LoggerFactory.getLogger(General.class);
 
     private HyperParams H;
-    private Core core;
 
     ArrayList<TrainingObject> T;
     ArrayList<TrainingObject> TN;
@@ -53,25 +54,26 @@ public class General {
         normalizator = new Normalizator(H);
         TN = normalizator.normalize(T);
 
-        core = new Core(H, TN);
-
-//        PlotDrawer.setTrainingObjects(TN);
-//        PlotDrawer.runInPparallel();
-//        Thread.sleep(3000);
+        PlotDrawer.setTrainingObjects(TN);
+        PlotDrawer.runInParallel();
+        Thread.sleep(3000);
 
         LOG.info("Run GradientDescent Algorithm");
-        runGradientDescent();
-//
-//        LOG.info("Run Genetic Algorithm");
-//        runGenetic();
+        runGradientDescent(TN);
+
+        LOG.info("Run Genetic Algorithm");
+        runGenetic(TN);
     }
 
-    private void runGradientDescent() throws InterruptedException {
-        GradientDescent gradientDescent = new GradientDescent(H, core, TN, H.startWeightVector);
+    private void runGradientDescent(ArrayList<TrainingObject> T) throws InterruptedException {
+        GradientDescent gradientDescent = new GradientDescent(H, T);
         runAlgorithm(gradientDescent);
+
+//        PlotDrawer.updateHypothesis(new Core(H), gradientDescent.getBestWeight());
+        PlotDrawer.addNewHypothesis(new Core(H), gradientDescent.getBestWeight(), Color.RED);
     }
 
-    private void runGenetic() throws InterruptedException {
+    private void runGenetic(ArrayList<TrainingObject> T) throws InterruptedException {
         ArrayList<SimpleMatrix> initialPopulation = new ArrayList<>();
         initialPopulation.add(new SimpleMatrix(new double[][]{{1, 2, 3}}));
         initialPopulation.add(new SimpleMatrix(new double[][]{{4, 5, 6}}));
@@ -79,37 +81,37 @@ public class General {
         initialPopulation.add(new SimpleMatrix(new double[][]{{10, 11, 12}}));
         initialPopulation.add(new SimpleMatrix(new double[][]{{13, 14, 15}}));
 
-        Genetic genetic = new Genetic(H, core, initialPopulation, 5);
+        Genetic genetic = new Genetic(H, T, initialPopulation, 5);
         runAlgorithm(genetic);
+
+        PlotDrawer.addNewHypothesis(new Core(H), genetic.getBestWeight(), Color.GREEN);
     }
 
     private void runAlgorithm(SearchBestAlgorithm searchBestAlgorithm) throws InterruptedException {
         int localMinimumCounter = 0;
-        double previousJ = Double.MAX_VALUE;
+        double previousError = Double.MAX_VALUE;
 
         SimpleMatrix w_current = H.startWeightVector;
         for (int i = 1; i <= H.globalIterationNumber && localMinimumCounter <= H.localMinimumIterationNumber; i++) {
-            SimpleMatrix w_new = searchBestAlgorithm.makeIterationGetBest();
-            double currentJ = core.f_J(w_new);
+            searchBestAlgorithm.makeIteration();
+            double currentError = searchBestAlgorithm.getErrorFromBest();
 
-            if (Math.abs(previousJ - currentJ) < H.localMinimumThreshold) {
+            if (currentError > previousError && Math.abs(previousError - currentError) < H.localMinimumThreshold) {
                 localMinimumCounter++;
 
             } else {
                 localMinimumCounter = 0;
 
             }
-            w_current = w_new;
-            previousJ = currentJ;
+            previousError = currentError;
 
-            LOG.trace("{}. Iteration number = {}. J = {}", searchBestAlgorithm.getClass().getSimpleName(), i, currentJ);
+            LOG.trace("{}. Iteration number = {}. J = {}", searchBestAlgorithm.getClass().getSimpleName(), i, currentError);
         }
 
-//        PlotDrawer.updateHypothesis(current_w);
-
+        LOG.trace("J = {}", searchBestAlgorithm.getClass().getSimpleName(), searchBestAlgorithm.getErrorFromBest());
         LOG.info("Average {}", averageOfValues);
         LOG.info("Range {}", rangeOfValues);
-        LOG.info("Output weight vector {}", normalizator.denormalizeWeightVector(w_current));
+        LOG.info("Output weight vector {}", normalizator.denormalizeWeightVector(searchBestAlgorithm.getBestWeight()));
     }
 
 

@@ -4,5 +4,9 @@ import org.ejml.simple.SimpleMatrix;
 
 public abstract class SearchBestAlgorithm {
 
-    abstract public SimpleMatrix makeIterationGetBest();
+    abstract public void makeIteration();
+
+    abstract public SimpleMatrix getBestWeight();
+
+    abstract public double getErrorFromBest();
 }

@@ -2,7 +2,7 @@ package com.akvone.machinelearning.core.searchbestalgorithms;
 
 import com.akvone.machinelearning.core.Core;
 import com.akvone.machinelearning.core.HyperParams;
-import lombok.AllArgsConstructor;
+import com.akvone.machinelearning.core.TrainingObject;
 import org.ejml.simple.SimpleMatrix;
 
 import java.util.ArrayList;
@@ -10,20 +10,44 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
-@AllArgsConstructor
 public class Genetic extends SearchBestAlgorithm {
+
     private HyperParams H;
-    private Core core;
+    private ArrayList<TrainingObject> T;
     private List<SimpleMatrix> currentPopulation;
     private int survivorNumber;
 
-    @Override
-    public SimpleMatrix makeIterationGetBest() {
-        currentPopulation = makeGeneticsIteration(currentPopulation, survivorNumber);
+    private Core core;
 
-        SimpleMatrix bestChild = Collections.max(currentPopulation, Comparator.comparing(core::f_J));
+
+    public Genetic(HyperParams H, ArrayList<TrainingObject> T, List<SimpleMatrix> currentPopulation, int survivorNumber) {
+        this.H = H;
+        this.T = T;
+        this.currentPopulation = currentPopulation;
+        this.survivorNumber = survivorNumber;
+
+        core = new Core(H);
+    }
+
+    @Override
+    public void makeIteration() {
+        currentPopulation = makeGeneticsIteration(currentPopulation, survivorNumber);
+    }
+
+    @Override
+    public SimpleMatrix getBestWeight() {
+        SimpleMatrix bestChild = Collections.max(currentPopulation, Comparator.comparing(this::calculateError));
 
         return bestChild;
+    }
+
+    @Override
+    public double getErrorFromBest() {
+        return core.f_J(getBestWeight(), T);
+    }
+
+    private double calculateError(SimpleMatrix w){
+        return core.f_J(w, T);
     }
 
     private List<SimpleMatrix> makeGeneticsIteration(List<SimpleMatrix> parents, int survivorNumber) {
@@ -31,10 +55,10 @@ public class Genetic extends SearchBestAlgorithm {
 
         ArrayList<Double> error = new ArrayList<>();
         for (SimpleMatrix w : parents) {
-            error.add(core.f_J(w));
+            error.add(core.f_J(w, T));
         }
 
-        children.sort((Comparator.comparing(core::f_J)));
+        children.sort((Comparator.comparing(this::calculateError)));
 
         List<SimpleMatrix> survivors = children.subList(0, survivorNumber);
 

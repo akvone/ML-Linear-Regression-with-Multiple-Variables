@@ -10,7 +10,6 @@ import static com.akvone.machinelearning.core.General.sum;
 @AllArgsConstructor
 public class Core {
     private HyperParams H;
-    private ArrayList<TrainingObject> T;
 
     /**
      * @return Result of hypothesis function: h(x, startWeightVector) = sum of (wi*xi), where i: 0..featureNumber
@@ -24,9 +23,9 @@ public class Core {
     /**
      * @return Cost function J
      */
-    public double f_J(SimpleMatrix w) {
-        return 1d / (2 * H.trainingSetLength) * sum(0, H.trainingSetLength,
+    public double f_J(SimpleMatrix w, ArrayList<TrainingObject> T) {
+        return Math.sqrt(1d / (2 * H.trainingSetLength) * sum(0, H.trainingSetLength,
                 o -> Math.pow(f_hypothesis(w, o) - o.y, 2),
-                i -> T.get(i));
+                T::get));
     }
 }
